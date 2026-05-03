@@ -8,7 +8,7 @@ const fs = require('fs');
 
 // ================= KONFIGURASI SERVER =================
 const PORT = 3001; // MENGGUNAKAN PORT 3001 AGAR TIDAK BENTROK DENGAN BOT UTAMA
-const AUTH_TOKEN = 'TOKEN_KHUSUS_PELANGGAN_123'; 
+const AUTH_TOKEN = 'q7t0Ag#sN)hZxyMx'; 
 
 const app = express();
 const server = http.createServer(app);
