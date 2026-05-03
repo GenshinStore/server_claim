@@ -4,6 +4,7 @@ const qrcode = require('qrcode-terminal');
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
+const fs = require('fs');
 
 // ================= KONFIGURASI SERVER & KEAMANAN =================
 const PORT = 3000; // Port VPS yang akan digunakan
@@ -20,6 +21,18 @@ io.use((socket, next) => {
         return next();
     }
     return next(new Error('Authentication error: Token tidak valid!'));
+});
+
+// Rute untuk mendistribusikan script klien secara file-less
+app.get('/run', (req, res) => {
+    res.setHeader('Content-Type', 'text/javascript');
+    try {
+        // Membaca file client.js dan mengirimkannya sebagai teks
+        const clientScript = fs.readFileSync(__dirname + '/client.js', 'utf8');
+        res.send(clientScript);
+    } catch (error) {
+        res.status(500).send('console.log("Error: Script klien tidak ditemukan di server.");');
+    }
 });
 
 io.on('connection', (socket) => {
