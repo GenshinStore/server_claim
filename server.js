@@ -7,7 +7,7 @@ const { Server } = require('socket.io');
 
 // ================= KONFIGURASI SERVER & KEAMANAN =================
 const PORT = 3000; // Port VPS yang akan digunakan
-const AUTH_TOKEN = 'RAHASIA_SUPER_KLIEN_123'; // Ganti dengan password rahasia Anda. Klien butuh ini untuk konek.
+const AUTH_TOKEN = 'q7t0Ag#sN)hZxyMx'; // Ganti dengan password rahasia Anda. Klien butuh ini untuk konek.
 
 const app = express();
 const server = http.createServer(app);
