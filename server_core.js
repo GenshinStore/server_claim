@@ -112,14 +112,25 @@ async function startBot() {
         if (!msg.message || msg.key.fromMe) return;
 
         const from = msg.key.remoteJid;
-        // Ambil nomor pengirim (penting untuk mengecek otoritas di dalam grup)
         const sender = msg.key.participant || msg.key.remoteJid; 
-        
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
         if (!text) return;
 
+        // --- 1. FITUR DEBUGGING (Cek di PM2 Logs) ---
+        console.log(`\n[DEBUG LOG] Pesan diterima!`);
+        console.log(`- Dari Group/Chat : ${from}`);
+        console.log(`- Pengirim Asli   : ${sender}`);
+        console.log(`- Teks            : ${text}`);
+
+        // --- 2. PEMBERSIHAN NOMOR SENDER ---
+        // Menghapus ID Perangkat (contoh: 628123:5@s.whatsapp.net menjadi 628123@s.whatsapp.net)
+        const cleanSender = sender.split(':')[0] + '@s.whatsapp.net';
+
         // ================= PERINTAH ADMIN DI GRUP ADMIN =================
-        if (from === GRUP_ADMIN && sender === NOMOR_ADMIN && text.startsWith('!')) {
+        // Sekarang kita cocokan cleanSender dengan NOMOR_ADMIN
+        if (from === GRUP_ADMIN && cleanSender === NOMOR_ADMIN && text.startsWith('!')) {
+            console.log(`[+] PERINTAH ADMIN TERDETEKSI: ${text}`);
+            
             const args = text.trim().split(' ');
             const command = args[0].toLowerCase();
 
@@ -152,6 +163,7 @@ async function startBot() {
                 return;
             }
         }
+
 
         // ================= EKSEKUSI LINK SUPER CEPAT =================
         const isGrupUtama = (from === GRUP_UTAMA);
