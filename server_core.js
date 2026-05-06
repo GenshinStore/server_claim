@@ -117,10 +117,10 @@ async function startBot() {
         if (!text) return;
 
         // --- 1. FITUR DEBUGGING (Cek di PM2 Logs) ---
-        console.log(`\n[DEBUG LOG] Pesan diterima!`);
-        console.log(`- Dari Group/Chat : ${from}`);
-        console.log(`- Pengirim Asli   : ${sender}`);
-        console.log(`- Teks            : ${text}`);
+        // console.log(`\n[DEBUG LOG] Pesan diterima!`);
+        // console.log(`- Dari Group/Chat : ${from}`);
+        // console.log(`- Pengirim Asli   : ${sender}`);
+        // console.log(`- Teks            : ${text}`);
 
         // --- 2. PEMBERSIHAN NOMOR SENDER ---
         // Menghapus ID Perangkat (contoh: 628123:5@s.whatsapp.net menjadi 628123@s.whatsapp.net)
