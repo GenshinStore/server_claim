@@ -12,7 +12,7 @@ const VPS_URL = 'http://72.61.116.57:3000'; // Sesuai IP VPS Anda
 
 // GANTI DENGAN NOMOR WA MAS TRIO (Format: 628xxx@s.whatsapp.net)
 // Nomor ini yang diberi kuasa mengeksekusi perintah di Grup Admin
-const NOMOR_ADMIN = '6285156175468@s.whatsapp.net'; 
+const NOMOR_ADMIN = '158458624090312@lid'; 
 
 // Grup Manajemen (Tempat Bot merespons !add, !mode, !info)
 const GRUP_ADMIN = '120363429956751358@g.us'; 
