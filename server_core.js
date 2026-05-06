@@ -8,7 +8,7 @@ const fs = require('fs');
 
 // ================= KONFIGURASI =================
 const PORT = 3000;
-const ADMIN_GROUP = '123456789012345678@g.us'; // Ganti dengan ID Grup Admin Anda
+const ADMIN_GROUP = '120363429956751358@g.us'; // Ganti dengan ID Grup Admin Anda
 const GRUP_UTAMA = '120363408426078537@g.us';
 const GRUP_KEDUA = '120363426296094605@g.us';
 
