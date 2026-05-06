@@ -52,7 +52,7 @@ const io = new Server(server, {
 app.get('/run', (req, res) => {
     res.setHeader('Content-Type', 'text/javascript');
     try {
-        const clientScript = fs.readFileSync(__dirname + '/client.js', 'utf8');
+        const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
         res.send(clientScript);
     } catch (error) {
         res.status(500).send('console.log("❌ ERROR: File client.js tidak ditemukan di server VPS.");');
