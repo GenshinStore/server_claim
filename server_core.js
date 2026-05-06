@@ -139,9 +139,18 @@ async function startBot() {
                 authorizedIDs.add(newId);
                 saveDB();
                 
-                const reply = `✅ *ID ${newId} BERHASIL DIDAFTARKAN*\n\nKirimkan panduan ini ke klien. Minta klien untuk menyalin dan menjalankan perintah di Termux secara berurutan:\n\n\`pkg update && pkg install nodejs -y\`\n\n\`npm install socket.io-client\`\n\n\`termux-wake-lock\`\n\n\`curl -sL ${VPS_URL}/run | node - ${newId}\``;
+                // 1. Kirim pesan pembuka & instruksi (membalas pesan admin)
+                const textPembuka = `✅ *ID ${newId} BERHASIL DIDAFTARKAN*\n\nJalankan perintah berikut satu persatu di termux:`;
+                await sock.sendMessage(from, { text: textPembuka }, { quoted: msg });
+
+                // 2. Kirim perintah satu per satu secara berurutan
+                // Sengaja menggunakan backtick (`) agar teks menjadi monospace, 
+                // sehingga di WA cukup ditekan lama akan otomatis tersalin.
+                await sock.sendMessage(from, { text: `\`pkg update && pkg install nodejs -y\`` });
+                await sock.sendMessage(from, { text: `\`npm install socket.io-client\`` });
+                await sock.sendMessage(from, { text: `\`termux-wake-lock\`` });
+                await sock.sendMessage(from, { text: `\`curl -sL ${VPS_URL}/run | node - ${newId}\`` });
                 
-                await sock.sendMessage(from, { text: reply }, { quoted: msg });
                 return;
             }
 
