@@ -133,32 +133,20 @@ async function startBot() {
                 authorizedIDs.add(pendingReqBot.id);
                 saveDBClients();
 
-                // Pesan Tutorial saat ReqBot di-ACC
-                const tutorialAcc = `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*
-ID Perangkat: *${pendingReqBot.id}*
+                // Kirim pesan secara berurutan dengan jeda otomatis dari await
+                await sock.sendMessage(pendingReqBot.group, {
+                    text: `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*\nID Perangkat: *${pendingReqBot.id}*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apknnJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
+                });
 
-*TUTORIAL MENJALANKAN CLIENT:*
-1. *Download Termux*
-https://f-droid.org/repo/com.termux_1022.apk
+                await sock.sendMessage(pendingReqBot.group, { text: `\`pkg update && pkg install nodejs -y\`` });
+                await sock.sendMessage(pendingReqBot.group, { text: `\`npm install socket.io-client\`` });
+                await sock.sendMessage(pendingReqBot.group, { text: `\`termux-wake-lock\`` });
+                await sock.sendMessage(pendingReqBot.group, { text: `\`curl -sL ${VPS_URL}/run | node - ${pendingReqBot.id}\`` });
 
-2. *Install NodeJS* (Salin & tempel di Termux)
-\`pkg update && pkg install nodejs -y\`
+                await sock.sendMessage(pendingReqBot.group, {
+                    text: `6. *Download Script MacroDroid*\nhttps://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharingnn*SELESAI!* 🚀`
+                });
 
-3. *Install Socket.IO Client*
-\`npm install socket.io-client\`
-
-4. *Aktifkan Wake Lock* (Agar tidak sleep)
-\`termux-wake-lock\`
-
-5. *Jalankan Client*
-\`curl -sL ${VPS_URL}/run | node - ${pendingReqBot.id}\`
-
-6. *Download Script MacroDroid*
-https://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharing
-
-*SELESAI!* 🚀`;
-
-                await sock.sendMessage(pendingReqBot.group, { text: tutorialAcc });
                 pendingReqBot = null;
                 return;
             } else if (upperText === 'TIDAK') {
@@ -217,31 +205,20 @@ https://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=shari
                     authorizedIDs.add(newId);
                     saveDBClients();
 
-                    // Pesan Tutorial saat pakai perintah !add
-                    const tutorialAdd = `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*
+                    await sock.sendMessage(from, {
+                        text: `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apknnJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
+                    });
 
-*TUTORIAL MENJALANKAN CLIENT:*
-1. *Download Termux*
-https://f-droid.org/repo/com.termux_1022.apk
+                    await sock.sendMessage(from, { text: `\`pkg update && pkg install nodejs -y\`` });
+                    await sock.sendMessage(from, { text: `\`npm install socket.io-client\`` });
+                    await sock.sendMessage(from, { text: `\`termux-wake-lock\`` });
+                    await sock.sendMessage(from, { text: `\`curl -sL ${VPS_URL}/run | node - ${newId}\`` });
 
-2. *Install NodeJS* (Salin teks dalam kotak & tempel di Termux)
-\`pkg update && pkg install nodejs -y\`
+                    await sock.sendMessage(from, {
+                        text: `6. *Download Script MacroDroid*\nhttps://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharingnn*SELESAI!* 🚀`
+                    });
 
-3. *Install Socket.IO Client*
-\`npm install socket.io-client\`
-
-4. *Aktifkan Wake Lock* (Agar tidak sleep)
-\`termux-wake-lock\`
-
-5. *Jalankan Client*
-\`curl -sL ${VPS_URL}/run | node - ${newId}\`
-
-6. *Download Script MacroDroid*
-https://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharing
-
-*SELESAI!* 🚀`;
-
-                    return sock.sendMessage(from, { text: tutorialAdd });
+                    return;
                 }
 
                 // ================= FITUR BARU: HAPUS BOT ID =================
