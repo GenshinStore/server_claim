@@ -220,16 +220,41 @@ async function startBot() {
                 return sock.sendMessage(from, { text: `⏳ *REQUEST TERKIRIM*\nMenunggu persetujuan Main Admin untuk ID: ${args[1]}\n(Main Admin: Balas OKE/IYA untuk menyetujui, TIDAK untuk menolak).` });
             }
 
+            // ================= 1. MENU PERINTAH =================
+            if (command === '!menu') {
+                let menuTxt = `🤖 *MENU BANTUAN ADMIN* 🤖\n\n`;
+
+                menuTxt += `👑 *HAK AKSES UTAMA (Main/Default Admin):*\n`;
+                menuTxt += `*!add <ID>* : Tambah ID klien langsung\n`;
+                menuTxt += `*!delbot <ID>* : Hapus ID & paksa disconnect\n`;
+                menuTxt += `*!addgrupadmin <ID>* : Tambah grup admin\n`;
+                menuTxt += `*!delgrupadmin <ID>* : Hapus grup admin\n`;
+                menuTxt += `*!addgrupclaim <ID>* : Tambah grup pantauan\n`;
+                menuTxt += `*!delgrupclaim <ID>* : Hapus grup pantauan\n`;
+                menuTxt += `*!mode true* : Pantau SEMUA grup claim\n`;
+                menuTxt += `*!mode false <ID>* : Prioritas SATU grup claim\n\n`;
+
+                menuTxt += `👥 *HAK AKSES UMUM (Semua Admin):*\n`;
+                menuTxt += `*!reqbot <ID>* : Request ID (butuh ACC Main Admin)\n`;
+                menuTxt += `*!info* : Cek status & konfigurasi server\n`;
+                menuTxt += `*!stats* : Cek statistik pesan & duplikat\n`;
+                menuTxt += `*!ping* : Cek status & delay server`;
+
+                return sock.sendMessage(from, { text: menuTxt });
+            }
+
+            // ================= 2. INFORMASI SERVER =================
             if (command === '!info') {
                 const uptime = ((Date.now() - stats.startTime) / 1000 / 60 / 60).toFixed(2);
                 let info = `📊 *INFORMASI SERVER*\n\n`;
-                info += `🤖 Bot Online (Clients): *${io.engine.clientsCount}*\n`;
+                info += `🤖 Bot Online (Clients): *${io.engine.clientsCount} Client*\n`;
                 info += `👑 Total Grup Admin: *${sysConfig.adminGroups.length}*\n`;
                 info += `📡 Total Grup Claim: *${sysConfig.claimGroups.length}*\n`;
                 info += `⚡ Mode Forwarding: *${sysConfig.mode === 'all' ? 'SEMUA GRUP' : 'PRIORITAS'}*\n`;
-                if (sysConfig.mode === 'priority') info += `🎯 Prioritas: *${sysConfig.priorityGroup}*\n`;
+                if (sysConfig.mode === 'priority') info += `🎯 Target Prioritas: *${sysConfig.priorityGroup}*\n`;
                 info += `⏱️ Uptime Server: *${uptime} Jam*\n`;
                 info += `🗑️ Status Cache: *${activeLinks.size} item aktif*`;
+                
                 return sock.sendMessage(from, { text: info });
             }
 
