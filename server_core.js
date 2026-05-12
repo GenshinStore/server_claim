@@ -9,7 +9,7 @@ const { performance } = require('perf_hooks');
 
 // ================= KONFIGURASI PENTING =================
 const PORT = 3000;
-const VPS_URL = 'http://72.61.116.57:3000'; 
+const VPS_URL = 'http://72.61.116.57:3000';
 
 // HAK AKSES SISTEM
 const MAIN_ADMIN = '158458624090312'; // Akan dicocokkan menggunakan .includes() untuk mengabaikan @lid / @s.whatsapp.net
@@ -37,21 +37,21 @@ let stats = {
 };
 
 // State Approval ReqBot
-let pendingReqBot = null; 
+let pendingReqBot = null;
 
 // Load DB Client
 if (fs.existsSync(DB_CLIENTS)) {
-    try { authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8'))); } 
+    try { authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8'))); }
     catch (e) { console.log('DB Client Error, membuat ulang...'); }
 }
 const saveDBClients = () => fs.writeFileSync(DB_CLIENTS, JSON.stringify([...authorizedIDs]));
 
 // Load System Config (Grup & Mode)
 if (fs.existsSync(DB_CONFIG)) {
-    try { 
+    try {
         const parsed = JSON.parse(fs.readFileSync(DB_CONFIG, 'utf8'));
         sysConfig = { ...sysConfig, ...parsed }; // Merge default dengan saved
-    } 
+    }
     catch (e) { console.log('DB Config Error, membuat ulang...'); }
 }
 const saveConfig = () => fs.writeFileSync(DB_CONFIG, JSON.stringify(sysConfig, null, 2));
@@ -60,9 +60,9 @@ const saveConfig = () => fs.writeFileSync(DB_CONFIG, JSON.stringify(sysConfig, n
 const app = express();
 const server = http.createServer(app);
 
-const io = new Server(server, { 
-    transports: ['websocket'], 
-    perMessageDeflate: false 
+const io = new Server(server, {
+    transports: ['websocket'],
+    perMessageDeflate: false
 });
 
 app.get('/run', (req, res) => {
@@ -93,13 +93,13 @@ const activeLinks = new Set(); // Cache Memory Kilat
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     const { version } = await fetchLatestBaileysVersion();
-    
+
     const sock = makeWASocket({
         version,
         auth: state,
-        logger: pino({ level: 'silent' }), 
+        logger: pino({ level: 'silent' }),
         browser: ['ServerClaim', 'Chrome', '2.0.0'],
-        getMessage: async () => ({ conversation: '' }) 
+        getMessage: async () => ({ conversation: '' })
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -108,7 +108,7 @@ async function startBot() {
         const { connection, qr } = update;
         if (qr) qrcode.generate(qr, { small: true });
         if (connection === 'open') console.log('✅ BOT SYSTEM ONLINE & READY!');
-        else if (connection === 'close') setTimeout(startBot, 3000); 
+        else if (connection === 'close') setTimeout(startBot, 3000);
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
@@ -118,14 +118,14 @@ async function startBot() {
 
         stats.msgMasuk++;
         const from = msg.key.remoteJid;
-        const sender = msg.key.participant || msg.key.remoteJid; 
+        const sender = msg.key.participant || msg.key.remoteJid;
         const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
         if (!text) return;
 
         const isMainAdmin = sender.includes(MAIN_ADMIN);
         const isDefaultAdminGroup = (from === DEFAULT_ADMIN_GROUP);
         const isAdminGroup = sysConfig.adminGroups.includes(from);
-        
+
         // ================= SISTEM APPROVAL REQBOT =================
         if (isMainAdmin && pendingReqBot) {
             const upperText = text.trim().toUpperCase();
@@ -191,6 +191,27 @@ async function startBot() {
                     saveDBClients();
                     return sock.sendMessage(from, { text: `✅ ID ${args[1]} langsung ditambahkan tanpa persetujuan (Bypass Main Admin).` });
                 }
+
+                // ================= FITUR BARU: HAPUS BOT ID =================
+                if (command === '!delbot' && args[1]) {
+                    const targetId = args[1];
+                    if (authorizedIDs.has(targetId)) {
+                        authorizedIDs.delete(targetId);
+                        saveDBClients();
+
+                        // Force Disconnect Klien yang sedang online secara Realtime
+                        io.sockets.sockets.forEach((clientSocket) => {
+                            if (clientSocket.handshake.auth.id === targetId) {
+                                clientSocket.disconnect(true);
+                            }
+                        });
+
+                        return sock.sendMessage(from, { text: `🗑️ ✅ ID Bot *${targetId}* berhasil dihapus dari sistem.\nKlien Termux dengan ID tersebut telah diputus dari server.` });
+                    } else {
+                        return sock.sendMessage(from, { text: `⚠️ GAGAL: ID Bot *${targetId}* tidak ditemukan di dalam database.` });
+                    }
+                }
+                // ==========================================================
             }
 
             // Command Umum Grup Admin (Termasuk Admin Tambahan)
@@ -229,7 +250,7 @@ async function startBot() {
 
         // ================= SISTEM FORWARDING & CLAIM LINK =================
         const isClaimGroup = sysConfig.claimGroups.includes(from);
-        
+
         // Filter Akses Grup Claim berdasarkan Mode
         if (!isClaimGroup) return;
         if (sysConfig.mode === 'priority' && from !== sysConfig.priorityGroup) return;
@@ -245,9 +266,9 @@ async function startBot() {
             if (!activeLinks.has(link)) {
                 activeLinks.add(link);
                 stats.fwBerhasil++;
-                
+
                 // Auto Cleanup Memory (Hapus link dari Set setelah 10 detik)
-                setTimeout(() => activeLinks.delete(link), 10000); 
+                setTimeout(() => activeLinks.delete(link), 10000);
 
                 console.log(`🚀 FORWARD -> ${link}`);
                 io.emit('eksekusi_link', { link: link, sumber: from });
