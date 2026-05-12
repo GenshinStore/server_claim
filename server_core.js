@@ -132,7 +132,33 @@ async function startBot() {
             if (upperText === 'OKE' || upperText === 'IYA') {
                 authorizedIDs.add(pendingReqBot.id);
                 saveDBClients();
-                await sock.sendMessage(pendingReqBot.group, { text: `✅ *REQUEST DISETUJUI*\nID ${pendingReqBot.id} berhasil ditambahkan ke database.` });
+
+                // Pesan Tutorial saat ReqBot di-ACC
+                const tutorialAcc = `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*
+ID Perangkat: *${pendingReqBot.id}*
+
+*TUTORIAL MENJALANKAN CLIENT:*
+1. *Download Termux*
+https://f-droid.org/repo/com.termux_1022.apk
+
+2. *Install NodeJS* (Salin & tempel di Termux)
+\`pkg update && pkg install nodejs -y\`
+
+3. *Install Socket.IO Client*
+\`npm install socket.io-client\`
+
+4. *Aktifkan Wake Lock* (Agar tidak sleep)
+\`termux-wake-lock\`
+
+5. *Jalankan Client*
+\`curl -sL ${VPS_URL}/run | node - ${pendingReqBot.id}\`
+
+6. *Download Script MacroDroid*
+https://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharing
+
+*SELESAI!* 🚀`;
+
+                await sock.sendMessage(pendingReqBot.group, { text: tutorialAcc });
                 pendingReqBot = null;
                 return;
             } else if (upperText === 'TIDAK') {
@@ -187,9 +213,35 @@ async function startBot() {
                 }
                 // !add langsung jika dari Default Admin / Main Admin
                 if (command === '!add' && args[1]) {
-                    authorizedIDs.add(args[1]);
+                    const newId = args[1];
+                    authorizedIDs.add(newId);
                     saveDBClients();
-                    return sock.sendMessage(from, { text: `✅ ID ${args[1]} langsung ditambahkan tanpa persetujuan (Bypass Main Admin).` });
+
+                    // Pesan Tutorial saat pakai perintah !add
+                    const tutorialAdd = `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*
+
+*TUTORIAL MENJALANKAN CLIENT:*
+1. *Download Termux*
+https://f-droid.org/repo/com.termux_1022.apk
+
+2. *Install NodeJS* (Salin teks dalam kotak & tempel di Termux)
+\`pkg update && pkg install nodejs -y\`
+
+3. *Install Socket.IO Client*
+\`npm install socket.io-client\`
+
+4. *Aktifkan Wake Lock* (Agar tidak sleep)
+\`termux-wake-lock\`
+
+5. *Jalankan Client*
+\`curl -sL ${VPS_URL}/run | node - ${newId}\`
+
+6. *Download Script MacroDroid*
+https://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharing
+
+*SELESAI!* 🚀`;
+
+                    return sock.sendMessage(from, { text: tutorialAdd });
                 }
 
                 // ================= FITUR BARU: HAPUS BOT ID =================
@@ -254,7 +306,7 @@ async function startBot() {
                 if (sysConfig.mode === 'priority') info += `🎯 Target Prioritas: *${sysConfig.priorityGroup}*\n`;
                 info += `⏱️ Uptime Server: *${uptime} Jam*\n`;
                 info += `🗑️ Status Cache: *${activeLinks.size} item aktif*`;
-                
+
                 return sock.sendMessage(from, { text: info });
             }
 
