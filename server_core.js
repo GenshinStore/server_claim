@@ -5,61 +5,76 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const fs = require('fs');
+const { performance } = require('perf_hooks');
 
 // ================= KONFIGURASI PENTING =================
 const PORT = 3000;
-const VPS_URL = 'http://72.61.116.57:3000'; // Sesuai IP VPS Anda
+const VPS_URL = 'http://72.61.116.57:3000'; 
 
-// GANTI DENGAN NOMOR WA MAS TRIO (Format: 628xxx@s.whatsapp.net)
-// Nomor ini yang diberi kuasa mengeksekusi perintah di Grup Admin
-const NOMOR_ADMIN = '158458624090312@lid@s.whatsapp.net'; 
+// HAK AKSES SISTEM
+const MAIN_ADMIN = '158458624090312'; // Akan dicocokkan menggunakan .includes() untuk mengabaikan @lid / @s.whatsapp.net
+const DEFAULT_ADMIN_GROUP = '120363429956751358@g.us';
+const DEFAULT_CLAIM_GROUP = '120363408426078537@g.us';
 
-// Grup Manajemen (Tempat Bot merespons !add, !mode, !info)
-const GRUP_ADMIN = '120363429956751358@g.us'; 
+// ================= DATABASE & STATE MANAGEMENT =================
+const DB_CLIENTS = './authorized_ids.json';
+const DB_CONFIG = './system_config.json';
 
-// Grup Target Pantauan Link
-const GRUP_UTAMA = '120363408426078537@g.us';
-const GRUP_KEDUA = '120363426296094605@g.us';
-
-let DUAL_MODE = false; // Bawaan awal: False (Hanya pantau Grup Utama)
-
-// ================= DATABASE CLIENT ID =================
-const DB_FILE = './authorized_ids.json';
 let authorizedIDs = new Set();
+let sysConfig = {
+    adminGroups: [DEFAULT_ADMIN_GROUP],
+    claimGroups: [DEFAULT_CLAIM_GROUP],
+    mode: 'all', // 'all' atau 'priority'
+    priorityGroup: null
+};
 
-// Load ID yang sudah terdaftar agar tidak hilang saat VPS restart
-if (fs.existsSync(DB_FILE)) {
-    try {
-        authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_FILE, 'utf8')));
-    } catch (e) {
-        console.log('Database baru dibuat.');
-    }
+// Statistik Realtime
+let stats = {
+    msgMasuk: 0,
+    fwBerhasil: 0,
+    fwDuplicate: 0,
+    startTime: Date.now()
+};
+
+// State Approval ReqBot
+let pendingReqBot = null; 
+
+// Load DB Client
+if (fs.existsSync(DB_CLIENTS)) {
+    try { authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8'))); } 
+    catch (e) { console.log('DB Client Error, membuat ulang...'); }
 }
-const saveDB = () => fs.writeFileSync(DB_FILE, JSON.stringify([...authorizedIDs]));
+const saveDBClients = () => fs.writeFileSync(DB_CLIENTS, JSON.stringify([...authorizedIDs]));
+
+// Load System Config (Grup & Mode)
+if (fs.existsSync(DB_CONFIG)) {
+    try { 
+        const parsed = JSON.parse(fs.readFileSync(DB_CONFIG, 'utf8'));
+        sysConfig = { ...sysConfig, ...parsed }; // Merge default dengan saved
+    } 
+    catch (e) { console.log('DB Config Error, membuat ulang...'); }
+}
+const saveConfig = () => fs.writeFileSync(DB_CONFIG, JSON.stringify(sysConfig, null, 2));
 
 // ================= SERVER & SOCKET (OPTIMASI SUPER CEPAT) =================
 const app = express();
 const server = http.createServer(app);
 
-// Optimasi: transports ['websocket'] menonaktifkan HTTP Polling yang lambat
-// perMessageDeflate: false menonaktifkan kompresi agar delay berkurang
 const io = new Server(server, { 
     transports: ['websocket'], 
     perMessageDeflate: false 
 });
 
-// Route Distribusi Script File-less (curl | node)
 app.get('/run', (req, res) => {
     res.setHeader('Content-Type', 'text/javascript');
     try {
         const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
         res.send(clientScript);
     } catch (error) {
-        res.status(500).send('console.log("❌ ERROR: File client.js tidak ditemukan di server VPS.");');
+        res.status(500).send('console.log("❌ ERROR: File client_core.js tidak ditemukan.");');
     }
 });
 
-// Middleware Keamanan Socket.IO
 io.use((socket, next) => {
     const clientID = socket.handshake.auth.id;
     if (authorizedIDs.has(clientID)) return next();
@@ -67,17 +82,13 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-    console.log(`[+] Klien Termux Terhubung: ${socket.handshake.auth.id}`);
-    socket.on('disconnect', () => {
-        console.log(`[-] Klien Termux Terputus: ${socket.handshake.auth.id}`);
-    });
+    console.log(`[+] Klien Claimer Terhubung: ${socket.handshake.auth.id}`);
+    socket.on('disconnect', () => console.log(`[-] Klien Claimer Terputus: ${socket.handshake.auth.id}`));
 });
 
 // ================= BOT WHATSAPP BAILEYS =================
 const linkRegex = /(https?:\/\/)?([\w-]+\.)?(dana\.id|link\.dana\.id|gopay\.co\.id|app\.gopay\.co\.id|shopeepay\.co\.id|shopee\.co\.id\/universal-link)(\/[^\s]*)?/gi;
-
-// Cache menggunakan Set agar pencarian (lookup) O(1) sangat cepat
-const activeLinks = new Set();
+const activeLinks = new Set(); // Cache Memory Kilat
 
 async function startBot() {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
@@ -86,9 +97,9 @@ async function startBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        logger: pino({ level: 'silent' }), // Matikan log bawaan agar tidak membebani CPU
-        browser: ['ServerClaim', 'Chrome', '1.0.0'],
-        getMessage: async () => ({ conversation: '' }) // Optimasi memori
+        logger: pino({ level: 'silent' }), 
+        browser: ['ServerClaim', 'Chrome', '2.0.0'],
+        getMessage: async () => ({ conversation: '' }) 
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -96,120 +107,164 @@ async function startBot() {
     sock.ev.on('connection.update', (update) => {
         const { connection, qr } = update;
         if (qr) qrcode.generate(qr, { small: true });
-        
-        if (connection === 'open') {
-            console.log('✅ BOT WA READY & MEMANTAU GRUP!');
-        } else if (connection === 'close') {
-            console.log('🔄 Koneksi WA terputus, menyambung ulang...');
-            setTimeout(startBot, 3000); // Auto reconnect jika WA putus
-        }
+        if (connection === 'open') console.log('✅ BOT SYSTEM ONLINE & READY!');
+        else if (connection === 'close') setTimeout(startBot, 3000); 
     });
 
     sock.ev.on('messages.upsert', async ({ messages, type }) => {
         if (type !== 'notify') return;
         const msg = messages[0];
-        
         if (!msg.message || msg.key.fromMe) return;
 
+        stats.msgMasuk++;
         const from = msg.key.remoteJid;
         const sender = msg.key.participant || msg.key.remoteJid; 
-        const text = msg.message.conversation || msg.message.extendedTextMessage?.text;
+        const text = msg.message.conversation || msg.message.extendedTextMessage?.text || '';
         if (!text) return;
 
-        // --- 1. FITUR DEBUGGING (Cek di PM2 Logs) ---
-        // console.log(`\n[DEBUG LOG] Pesan diterima!`);
-        // console.log(`- Dari Group/Chat : ${from}`);
-        // console.log(`- Pengirim Asli   : ${sender}`);
-        // console.log(`- Teks            : ${text}`);
-
-        // --- 2. PEMBERSIHAN NOMOR SENDER ---
-        // Menghapus ID Perangkat (contoh: 628123:5@s.whatsapp.net menjadi 628123@s.whatsapp.net)
-        const cleanSender = sender.split(':')[0] + '@s.whatsapp.net';
-
-        // ================= PERINTAH ADMIN DI GRUP ADMIN =================
-        // Sekarang kita cocokan cleanSender dengan NOMOR_ADMIN
-        if (from === GRUP_ADMIN && cleanSender === NOMOR_ADMIN && text.startsWith('!')) {
-            console.log(`[+] PERINTAH ADMIN TERDETEKSI: ${text}`);
-            
-            const args = text.trim().split(' ');
-            const command = args[0].toLowerCase();
-
-            if (command === '!add' && args[1]) {
-                const newId = args[1];
-                authorizedIDs.add(newId);
-                saveDB();
-                
-                // 1. Kirim pesan pembuka & instruksi (membalas pesan admin)
-                const textPembuka = `✅ *ID ${newId} BERHASIL DIDAFTARKAN*\n\nJalankan perintah berikut satu persatu di termux:`;
-                await sock.sendMessage(from, { text: textPembuka }, { quoted: msg });
-
-                // 2. Kirim perintah satu per satu secara berurutan
-                // Sengaja menggunakan backtick (`) agar teks menjadi monospace, 
-                // sehingga di WA cukup ditekan lama akan otomatis tersalin.
-                await sock.sendMessage(from, { text: `\`pkg update && pkg install nodejs -y\`` });
-                await sock.sendMessage(from, { text: `\`npm install socket.io-client\`` });
-                await sock.sendMessage(from, { text: `\`termux-wake-lock\`` });
-                await sock.sendMessage(from, { text: `\`curl -sL ${VPS_URL}/run | node - ${newId}\`` });
-                
+        const isMainAdmin = sender.includes(MAIN_ADMIN);
+        const isDefaultAdminGroup = (from === DEFAULT_ADMIN_GROUP);
+        const isAdminGroup = sysConfig.adminGroups.includes(from);
+        
+        // ================= SISTEM APPROVAL REQBOT =================
+        if (isMainAdmin && pendingReqBot) {
+            const upperText = text.trim().toUpperCase();
+            if (upperText === 'OKE' || upperText === 'IYA') {
+                authorizedIDs.add(pendingReqBot.id);
+                saveDBClients();
+                await sock.sendMessage(pendingReqBot.group, { text: `✅ *REQUEST DISETUJUI*\nID ${pendingReqBot.id} berhasil ditambahkan ke database.` });
+                pendingReqBot = null;
+                return;
+            } else if (upperText === 'TIDAK') {
+                await sock.sendMessage(pendingReqBot.group, { text: `❌ *REQUEST DITOLAK*\nID ${pendingReqBot.id} tidak diizinkan oleh Main Admin.` });
+                pendingReqBot = null;
                 return;
             }
+        }
 
-            if (command === '!mode') {
-                const modeVal = args[1];
-                if (modeVal === 'true') {
-                    DUAL_MODE = true;
-                    await sock.sendMessage(from, { text: '⚡ Mode Super Cepat: MEMANTAU 2 GRUP' }, { quoted: msg });
-                } else if (modeVal === 'false') {
-                    DUAL_MODE = false;
-                    await sock.sendMessage(from, { text: '🛑 Mode Single: MEMANTAU GRUP UTAMA SAJA' }, { quoted: msg });
+        // ================= COMMAND ADMIN =================
+        if (isAdminGroup && text.startsWith('!')) {
+            const args = text.trim().split(' ');
+            const command = args[0].toLowerCase();
+            const startPing = performance.now();
+
+            // Hak Akses Khusus: Main Admin & Default Admin Group
+            if (isMainAdmin || isDefaultAdminGroup) {
+                if (command === '!addgrupadmin' && args[1]) {
+                    sysConfig.adminGroups.push(args[1]);
+                    sysConfig.adminGroups = [...new Set(sysConfig.adminGroups)];
+                    saveConfig();
+                    return sock.sendMessage(from, { text: `✅ Grup Admin ditambahkan:\n${args[1]}` });
                 }
-                return;
+                if (command === '!delgrupadmin' && args[1]) {
+                    sysConfig.adminGroups = sysConfig.adminGroups.filter(g => g !== args[1]);
+                    saveConfig();
+                    return sock.sendMessage(from, { text: `🗑️ Grup Admin dihapus:\n${args[1]}` });
+                }
+                if (command === '!addgrupclaim' && args[1]) {
+                    sysConfig.claimGroups.push(args[1]);
+                    sysConfig.claimGroups = [...new Set(sysConfig.claimGroups)];
+                    saveConfig();
+                    return sock.sendMessage(from, { text: `✅ Grup Claim ditambahkan:\n${args[1]}` });
+                }
+                if (command === '!delgrupclaim' && args[1]) {
+                    sysConfig.claimGroups = sysConfig.claimGroups.filter(g => g !== args[1]);
+                    saveConfig();
+                    return sock.sendMessage(from, { text: `🗑️ Grup Claim dihapus:\n${args[1]}` });
+                }
+                if (command === '!mode') {
+                    if (args[1] === 'true') {
+                        sysConfig.mode = 'all';
+                        sysConfig.priorityGroup = null;
+                        saveConfig();
+                        return sock.sendMessage(from, { text: `⚡ Mode Semua Grup: AKTIF\nMemonitor semua grup claim.` });
+                    } else if (args[1] === 'false' && args[2]) {
+                        sysConfig.mode = 'priority';
+                        sysConfig.priorityGroup = args[2];
+                        saveConfig();
+                        return sock.sendMessage(from, { text: `🎯 Mode Prioritas: AKTIF\nFokus monitoring hanya pada:\n${args[2]}` });
+                    }
+                }
+                // !add langsung jika dari Default Admin / Main Admin
+                if (command === '!add' && args[1]) {
+                    authorizedIDs.add(args[1]);
+                    saveDBClients();
+                    return sock.sendMessage(from, { text: `✅ ID ${args[1]} langsung ditambahkan tanpa persetujuan (Bypass Main Admin).` });
+                }
+            }
+
+            // Command Umum Grup Admin (Termasuk Admin Tambahan)
+            if (command === '!reqbot' && args[1]) {
+                pendingReqBot = { id: args[1], group: from, sender: sender };
+                return sock.sendMessage(from, { text: `⏳ *REQUEST TERKIRIM*\nMenunggu persetujuan Main Admin untuk ID: ${args[1]}\n(Main Admin: Balas OKE/IYA untuk menyetujui, TIDAK untuk menolak).` });
             }
 
             if (command === '!info') {
-                const infoText = `🤖 *MENU ADMIN CLAIMER*\n\n*!add <ID>* : Mendaftarkan ID klien baru.\n*!mode true* : Pantau Grup Utama & Kedua.\n*!mode false* : Pantau Grup Utama saja.\n\n_Status Mode Dual saat ini:_ *${DUAL_MODE}*`;
-                await sock.sendMessage(from, { text: infoText });
-                return;
+                const uptime = ((Date.now() - stats.startTime) / 1000 / 60 / 60).toFixed(2);
+                let info = `📊 *INFORMASI SERVER*\n\n`;
+                info += `🤖 Bot Online (Clients): *${io.engine.clientsCount}*\n`;
+                info += `👑 Total Grup Admin: *${sysConfig.adminGroups.length}*\n`;
+                info += `📡 Total Grup Claim: *${sysConfig.claimGroups.length}*\n`;
+                info += `⚡ Mode Forwarding: *${sysConfig.mode === 'all' ? 'SEMUA GRUP' : 'PRIORITAS'}*\n`;
+                if (sysConfig.mode === 'priority') info += `🎯 Prioritas: *${sysConfig.priorityGroup}*\n`;
+                info += `⏱️ Uptime Server: *${uptime} Jam*\n`;
+                info += `🗑️ Status Cache: *${activeLinks.size} item aktif*`;
+                return sock.sendMessage(from, { text: info });
+            }
+
+            if (command === '!stats') {
+                let statText = `📈 *STATISTIK SISTEM*\n\n`;
+                statText += `📥 Total Pesan Masuk: *${stats.msgMasuk}*\n`;
+                statText += `✅ Total Forward Sukses: *${stats.fwBerhasil}*\n`;
+                statText += `🚫 Duplicate Link Terfilter: *${stats.fwDuplicate}*`;
+                return sock.sendMessage(from, { text: statText });
+            }
+
+            if (command === '!ping') {
+                const endPing = performance.now();
+                const latency = Math.round(endPing - startPing);
+                return sock.sendMessage(from, { text: `🏓 Pong! \nStatus: *🟢 ONLINE*\nDelay Server: *${latency}ms*` });
             }
         }
 
+        // ================= SISTEM FORWARDING & CLAIM LINK =================
+        const isClaimGroup = sysConfig.claimGroups.includes(from);
+        
+        // Filter Akses Grup Claim berdasarkan Mode
+        if (!isClaimGroup) return;
+        if (sysConfig.mode === 'priority' && from !== sysConfig.priorityGroup) return;
 
-        // ================= EKSEKUSI LINK SUPER CEPAT =================
-        const isGrupUtama = (from === GRUP_UTAMA);
-        const isGrupKedua = (from === GRUP_KEDUA);
-
-        // Filter Grup (Jika bukan grup target, langsung hentikan proses agar hemat CPU)
-        if (DUAL_MODE) {
-            if (!isGrupUtama && !isGrupKedua) return;
-        } else {
-            if (!isGrupUtama) return;
-        }
-
-        // Eksekusi regex kilat
+        // Eksekusi Cepat (Regex)
         const matches = text.match(linkRegex);
         if (!matches) return;
 
-        // Looping cepat tanpa blocking/await
-        for (let i = 0; i < matches.length; i++) {
-            let link = matches[i].startsWith('http') ? matches[i] : 'https://' + matches[i];
+        // Async Parallel Forwarding Queue
+        Promise.allSettled(matches.map(async (match) => {
+            let link = match.startsWith('http') ? match : 'https://' + match;
 
             if (!activeLinks.has(link)) {
                 activeLinks.add(link);
-                // Hapus cache link setelah 5 detik agar memori tidak penuh
-                setTimeout(() => activeLinks.delete(link), 5000); 
-
-                const sumberName = isGrupUtama ? 'Grup Utama' : 'Grup Kedua';
-                console.log(`🚀 BROADCAST KILAT -> ${link} (${sumberName})`);
+                stats.fwBerhasil++;
                 
-                // MENGIRIM LINK KE SELURUH KLIEN TERMUX SECARA BERSAMAAN
-                io.emit('eksekusi_link', { link: link, sumber: sumberName });
+                // Auto Cleanup Memory (Hapus link dari Set setelah 10 detik)
+                setTimeout(() => activeLinks.delete(link), 10000); 
+
+                console.log(`🚀 FORWARD -> ${link}`);
+                io.emit('eksekusi_link', { link: link, sumber: from });
+            } else {
+                stats.fwDuplicate++; // Tercatat sebagai duplikat / loop terfilter
             }
-        }
+        }));
     });
 }
 
-// Jalankan Server Web dan Bot secara bersamaan
 server.listen(PORT, () => {
-    console.log(`🚀 Server Engine berjalan di port ${PORT}`);
+    console.log(`🚀 SERVER PUSAT ENGINE V2 Berjalan di Port ${PORT}`);
     startBot();
 });
+
+// Auto Restart Memory Cleanup setiap 6 Jam
+setInterval(() => {
+    console.log('🔄 Memulai Auto-Restart Terjadwal untuk kestabilan...');
+    process.exit(1); // PM2 akan otomatis menyalakan ulang
+}, 6 * 60 * 60 * 1000);

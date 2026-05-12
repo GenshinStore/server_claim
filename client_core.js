@@ -1,7 +1,6 @@
 const io = require('socket.io-client');
 const { spawn } = require('child_process');
 
-// ID didapatkan dari argumen eksekusi (contoh: node - ID123)
 const myID = process.argv[2];
 
 if (!myID) {
@@ -13,16 +12,18 @@ if (!myID) {
 const VPS_URL = 'http://72.61.116.57:3000';
 
 console.log('===================================');
-console.log(`🔑 ID PERANGKAT : ${myID}`);
+console.log(`🔑 ID PERANGKAT CLAIM : ${myID}`);
 console.log('===================================');
-console.log('Menghubungkan ke server pusat...\n');
+console.log('Menghubungkan ke server pusat...');
 
+// Optimasi Klien: Auto Reconnect & Transport Fix
 const socket = io(VPS_URL, {
     auth: { id: myID },
     transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: Infinity,
-    reconnectionDelay: 1000
+    reconnectionDelay: 500, // Reconnect super cepat
+    reconnectionDelayMax: 2000
 });
 
 socket.on('connect', () => {
@@ -32,21 +33,21 @@ socket.on('connect', () => {
 
 socket.on('connect_error', (err) => {
     if (err.message === 'UNAUTHORIZED') {
-        console.log('\n❌ AKSES DITOLAK: ID belum terdaftar!');
-        console.log('Hubungi Admin untuk mendaftarkan ID ini.');
+        console.log('\n❌ AKSES DITOLAK: ID belum terdaftar di sistem.');
+        console.log('Silakan minta Admin Utama untuk mendaftarkan ID ini.');
         process.exit(1);
     } else {
-        console.log('⚠️ Gangguan koneksi:', err.message);
+        console.log('⚠️ Gangguan jaringan:', err.message, '- Mencoba lagi...');
     }
 });
 
 socket.on('eksekusi_link', (data) => {
-    console.log(`⚡ [${data.sumber}] MENGKLAIM: ${data.link}`);
+    console.log(`⚡ KLAIM KILAT [Source: ${data.sumber}] -> ${data.link}`);
     
-    // Eksekusi super cepat di latar belakang
+    // Fast Media Processing: Background claim tanpa nyangkut
     const claimProcess = spawn('termux-open-url', [data.link], { 
         detached: true, 
         stdio: 'ignore' 
     });
-    claimProcess.unref();
+    claimProcess.unref(); // Membiarkan proses jalan sendiri agar client tidak delay
 });
