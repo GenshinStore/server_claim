@@ -135,7 +135,8 @@ async function startBot() {
 
                 // Kirim pesan secara berurutan dengan jeda otomatis dari await
                 await sock.sendMessage(pendingReqBot.group, {
-                    text: `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*\nID Perangkat: *${pendingReqBot.id}*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apknnJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
+                    text: `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*\nID Perangkat: *${pendingReqBot.id}*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apk
+                    \nJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
                 });
 
                 await sock.sendMessage(pendingReqBot.group, { text: `\`pkg update && pkg install nodejs -y\`` });
@@ -206,7 +207,7 @@ async function startBot() {
                     saveDBClients();
 
                     await sock.sendMessage(from, {
-                        text: `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apknnJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
+                        text: `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apk \nJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
                     });
 
                     await sock.sendMessage(from, { text: `\`pkg update && pkg install nodejs -y\`` });
