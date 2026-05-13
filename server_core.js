@@ -130,19 +130,27 @@ async function startBot() {
         if (isMainAdmin && pendingReqBot) {
             const upperText = text.trim().toUpperCase();
             if (upperText === 'OKE' || upperText === 'IYA') {
+
+                // Cek sekali lagi saat di-ACC
+                if (authorizedIDs.has(pendingReqBot.id)) {
+                    await sock.sendMessage(pendingReqBot.group, { text: `⚠️ ID *${pendingReqBot.id}* ternyata sudah terdaftar sebelumnya. Request dibatalkan otomatis.` });
+                    pendingReqBot = null;
+                    return;
+                }
+
                 authorizedIDs.add(pendingReqBot.id);
                 saveDBClients();
 
                 // Kirim pesan secara berurutan dengan jeda otomatis dari await
                 await sock.sendMessage(pendingReqBot.group, {
                     text: `✅ *REQUEST DISETUJUI & ID BERHASIL DIDAFTARKAN!*\nID Perangkat: *${pendingReqBot.id}*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apk
-                    \nJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
+                    \nJalankan perintah di bawah ini di Termux satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
                 });
 
-                await sock.sendMessage(pendingReqBot.group, { text: `\`pkg update && pkg install nodejs -y\`` });
-                await sock.sendMessage(pendingReqBot.group, { text: `\`npm install socket.io-client\`` });
-                await sock.sendMessage(pendingReqBot.group, { text: `\`termux-wake-lock\`` });
-                await sock.sendMessage(pendingReqBot.group, { text: `\`curl -sL ${VPS_URL}/run | node - ${pendingReqBot.id}\`` });
+                await sock.sendMessage(pendingReqBot.group, { text: `pkg update && pkg install nodejs -y` });
+                await sock.sendMessage(pendingReqBot.group, { text: `npm install socket.io-client` });
+                await sock.sendMessage(pendingReqBot.group, { text: `termux-wake-lock` });
+                await sock.sendMessage(pendingReqBot.group, { text: `curl -sL ${VPS_URL}/run | node - ${pendingReqBot.id}` });
 
                 await sock.sendMessage(pendingReqBot.group, {
                     text: `6. *Download Script MacroDroid*\nhttps://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharingnn*SELESAI!* 🚀`
@@ -206,14 +214,22 @@ async function startBot() {
                     authorizedIDs.add(newId);
                     saveDBClients();
 
+                    // Pengecekan: Cegah penambahan jika ID sudah ada
+                    if (authorizedIDs.has(newId)) {
+                        return sock.sendMessage(from, { text: `⚠️ *GAGAL:* ID *${newId}* sudah ada di dalam database!` });
+                    }
+
+                    authorizedIDs.add(newId);
+                    saveDBClients();
+
                     await sock.sendMessage(from, {
                         text: `✅ *ID ${newId} BERHASIL DITAMBAHKAN!*\n\n*TUTORIAL MENJALANKAN CLIENT:*\n\n1. *Download Termux*\nhttps://f-droid.org/repo/com.termux_1022.apk \nJalankan perintah di bawah ini satu per satu (tekan lama pada pesan untuk menyalin otomatis):`
                     });
 
-                    await sock.sendMessage(from, { text: `\`pkg update && pkg install nodejs -y\`` });
-                    await sock.sendMessage(from, { text: `\`npm install socket.io-client\`` });
-                    await sock.sendMessage(from, { text: `\`termux-wake-lock\`` });
-                    await sock.sendMessage(from, { text: `\`curl -sL ${VPS_URL}/run | node - ${newId}\`` });
+                    await sock.sendMessage(from, { text: `pkg update && pkg install nodejs -y` });
+                    await sock.sendMessage(from, { text: `npm install socket.io-client` });
+                    await sock.sendMessage(from, { text: `termux-wake-lock` });
+                    await sock.sendMessage(from, { text: `curl -sL ${VPS_URL}/run | node - ${newId}` });
 
                     await sock.sendMessage(from, {
                         text: `6. *Download Script MacroDroid*\nhttps://drive.google.com/file/d/1-8BAkexUapLo4VZ6kMU2OOLXyhh-3rVd/view?usp=sharingnn*SELESAI!* 🚀`
@@ -246,8 +262,15 @@ async function startBot() {
 
             // Command Umum Grup Admin (Termasuk Admin Tambahan)
             if (command === '!reqbot' && args[1]) {
-                pendingReqBot = { id: args[1], group: from, sender: sender };
-                return sock.sendMessage(from, { text: `⏳ *REQUEST TERKIRIM*\nMenunggu persetujuan Main Admin untuk ID: ${args[1]}\n(Main Admin: Balas OKE/IYA untuk menyetujui, TIDAK untuk menolak).` });
+                const reqId = args[1];
+
+                // Pengecekan: Cegah request jika ID sudah terdaftar
+                if (authorizedIDs.has(reqId)) {
+                    return sock.sendMessage(from, { text: `⚠️ *GAGAL:* ID *${reqId}* sudah terdaftar di dalam sistem! Tidak perlu diminta lagi.` });
+                }
+
+                pendingReqBot = { id: reqId, group: from, sender: sender };
+                return sock.sendMessage(from, { text: `⏳ *REQUEST TERKIRIM*\nMenunggu persetujuan Main Admin untuk ID: ${reqId}\n(Main Admin: Balas OKE/IYA untuk menyetujui, TIDAK untuk menolak).` });
             }
 
             // ================= 1. MENU PERINTAH =================
