@@ -210,10 +210,12 @@ async function startBot() {
                 }
                 // !add langsung jika dari Default Admin / Main Admin
                 if (command === '!add' && args[1]) {
+                    // SINKRONISASI: Memaksa bot membaca file JSON terbaru agar memori tidak nyangkut
+                    if (fs.existsSync(DB_CLIENTS)) {
+                        authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8')));
+                    }
                     const newId = args[1];
-                    authorizedIDs.add(newId);
-                    saveDBClients();
-
+                    
                     // Pengecekan: Cegah penambahan jika ID sudah ada
                     if (authorizedIDs.has(newId)) {
                         return sock.sendMessage(from, { text: `⚠️ *GAGAL:* ID *${newId}* sudah ada di dalam database!` });
@@ -262,6 +264,11 @@ async function startBot() {
 
             // Command Umum Grup Admin (Termasuk Admin Tambahan)
             if (command === '!reqbot' && args[1]) {
+                // SINKRONISASI: Membaca file JSON terbaru
+                if (fs.existsSync(DB_CLIENTS)) {
+                    authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8')));
+                }
+
                 const reqId = args[1];
 
                 // Pengecekan: Cegah request jika ID sudah terdaftar
