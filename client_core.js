@@ -9,7 +9,7 @@ if (!myID) {
     process.exit(1);
 }
 
-const VPS_URL = 'http://72.61.116.57:3000';
+const VPS_URL = 'http://34.126.143.16:3000';
 
 console.log('===================================');
 console.log(`🔑 ID PERANGKAT CLAIM : ${myID}`);
