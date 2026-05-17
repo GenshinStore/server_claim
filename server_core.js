@@ -76,28 +76,31 @@ const io = new Server(server, {
 //     }
 // });
 
+// app.get('/run', (req, res) => {
+//     console.log('📥 REQUEST /run MASUK');
+
+//     try {
+//         const filePath = __dirname + '/client_core.js';
+//         console.log('📂 Membaca file:', filePath);
+
+//         const clientScript = fs.readFileSync(filePath, 'utf8');
+
+//         console.log('📦 Ukuran file:', clientScript.length);
+
+//         res.setHeader('Content-Type', 'text/javascript');
+//         res.send(clientScript);
+
+//         console.log('✅ client_core.js berhasil dikirim');
+//     } catch (error) {
+//         console.log('❌ ERROR /run:', error);
+
+//         res.status(500).send(`
+//             console.log("ERROR SERVER");
+//         `);
+//     }
+// });
 app.get('/run', (req, res) => {
-    console.log('📥 REQUEST /run MASUK');
-
-    try {
-        const filePath = __dirname + '/client_core.js';
-        console.log('📂 Membaca file:', filePath);
-
-        const clientScript = fs.readFileSync(filePath, 'utf8');
-
-        console.log('📦 Ukuran file:', clientScript.length);
-
-        res.setHeader('Content-Type', 'text/javascript');
-        res.send(clientScript);
-
-        console.log('✅ client_core.js berhasil dikirim');
-    } catch (error) {
-        console.log('❌ ERROR /run:', error);
-
-        res.status(500).send(`
-            console.log("ERROR SERVER");
-        `);
-    }
+    res.sendFile(__dirname + '/client_core.js');
 });
 
 io.use((socket, next) => {
