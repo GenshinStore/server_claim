@@ -66,13 +66,37 @@ const io = new Server(server, {
     perMessageDeflate: false
 });
 
+// app.get('/run', (req, res) => {
+//     res.setHeader('Content-Type', 'text/javascript');
+//     try {
+//         const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
+//         res.send(clientScript);
+//     } catch (error) {
+//         res.status(500).send('console.log("❌ ERROR: File client_core.js tidak ditemukan.");');
+//     }
+// });
+
 app.get('/run', (req, res) => {
-    res.setHeader('Content-Type', 'text/javascript');
+    console.log('📥 REQUEST /run MASUK');
+
     try {
-        const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
+        const filePath = __dirname + '/client_core.js';
+        console.log('📂 Membaca file:', filePath);
+
+        const clientScript = fs.readFileSync(filePath, 'utf8');
+
+        console.log('📦 Ukuran file:', clientScript.length);
+
+        res.setHeader('Content-Type', 'text/javascript');
         res.send(clientScript);
+
+        console.log('✅ client_core.js berhasil dikirim');
     } catch (error) {
-        res.status(500).send('console.log("❌ ERROR: File client_core.js tidak ditemukan.");');
+        console.log('❌ ERROR /run:', error);
+
+        res.status(500).send(`
+            console.log("ERROR SERVER");
+        `);
     }
 });
 
@@ -216,7 +240,7 @@ async function startBot() {
                         authorizedIDs = new Set(JSON.parse(fs.readFileSync(DB_CLIENTS, 'utf8')));
                     }
                     const newId = args[1];
-                    
+
                     // Pengecekan: Cegah penambahan jika ID sudah ada
                     if (authorizedIDs.has(newId)) {
                         return sock.sendMessage(from, { text: `⚠️ *GAGAL:* ID *${newId}* sudah ada di dalam database!` });
