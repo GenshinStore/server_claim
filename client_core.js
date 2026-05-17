@@ -10,7 +10,7 @@ if (!myID) {
 }
 
 // const VPS_URL = 'http://34.126.143.16:3000';
-const VPS_URL = 'http://156.230.188.87:3000';
+const VPS_URL = 'http://156.230.188.87:1059';
 
 console.log('===================================');
 console.log(`🔑 ID PERANGKAT CLAIM : ${myID}`);

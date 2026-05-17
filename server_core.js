@@ -8,9 +8,9 @@ const fs = require('fs');
 const { performance } = require('perf_hooks');
 
 // ================= KONFIGURASI PENTING =================
-const PORT = 3000;
+const PORT = 1059;
 // const VPS_URL = 'http://34.126.143.16:3000';
-const VPS_URL = 'http://156.230.188.87:3000';
+const VPS_URL = 'http://156.230.188.87:1059';
 
 // HAK AKSES SISTEM
 const MAIN_ADMIN = '158458624090312'; // Akan dicocokkan menggunakan .includes() untuk mengabaikan @lid / @s.whatsapp.net
@@ -66,15 +66,15 @@ const io = new Server(server, {
     perMessageDeflate: false
 });
 
-// app.get('/run', (req, res) => {
-//     res.setHeader('Content-Type', 'text/javascript');
-//     try {
-//         const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
-//         res.send(clientScript);
-//     } catch (error) {
-//         res.status(500).send('console.log("❌ ERROR: File client_core.js tidak ditemukan.");');
-//     }
-// });
+app.get('/run', (req, res) => {
+    res.setHeader('Content-Type', 'text/javascript');
+    try {
+        const clientScript = fs.readFileSync(__dirname + '/client_core.js', 'utf8');
+        res.send(clientScript);
+    } catch (error) {
+        res.status(500).send('console.log("❌ ERROR: File client_core.js tidak ditemukan.");');
+    }
+});
 
 // app.get('/run', (req, res) => {
 //     console.log('📥 REQUEST /run MASUK');
@@ -99,9 +99,9 @@ const io = new Server(server, {
 //         `);
 //     }
 // });
-app.get('/run', (req, res) => {
-    res.sendFile(__dirname + '/client_core.js');
-});
+// app.get('/run', (req, res) => {
+//     res.sendFile(__dirname + '/client_core.js');
+// });
 
 io.use((socket, next) => {
     const clientID = socket.handshake.auth.id;
