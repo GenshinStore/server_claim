@@ -8,9 +8,10 @@ const fs = require('fs');
 const { performance } = require('perf_hooks');
 
 // ================= KONFIGURASI PENTING =================
-const PORT = 1059;
+const PORT = 3000;
 // const VPS_URL = 'http://34.126.143.16:3000';
-const VPS_URL = 'http://156.230.188.87:1059';
+// const VPS_URL = 'http://156.230.188.87:3000';
+const VPS_URL = 'http://72.61.116.57:3000';
 
 // HAK AKSES SISTEM
 const MAIN_ADMIN = '158458624090312'; // Akan dicocokkan menggunakan .includes() untuk mengabaikan @lid / @s.whatsapp.net
